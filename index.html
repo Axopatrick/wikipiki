@@ -234,7 +234,7 @@
 
   #go-streak, #go-record { font-size: 1.1rem; color: #54595d; }
 
-  #restart-btn {
+ #restart-btn, #share-btn {
     background: #3366cc;
     color: white;
     border: none;
@@ -244,9 +244,19 @@
     font-size: 1rem;
     font-family: inherit;
     transition: background 0.2s;
-  }
+}
 
-  #restart-btn:hover { background: #2a55aa; }
+#restart-btn:hover, #share-btn:hover {
+    background: #2a55aa;
+}
+
+#share-btn {
+    background: #4caf50; /* vert pour se distinguer */
+}
+
+#share-btn:hover {
+    background: #388e3c;
+}
 </style>
 </head>
 <body>
@@ -266,10 +276,12 @@
 <div id="loading"></div>
 
 <div id="gameover">
-  <h2>💀 Partie terminée</h2>
+  <h2>Partie terminée !</h2>
   <div id="go-streak"></div>
   <div id="go-record"></div>
   <button id="restart-btn">🔄 Rejouer</button>
+  <button id="share-btn">🔗 Partager</button>
+
 </div>
 
 <script>
@@ -392,6 +404,7 @@ function showHint(intro) {
 
 function handleAnswer(card, url) {
   if (answersLocked) return;
+  answersLocked = true;
 
   if (url === correctImageUrl) {
     card.classList.add("correct");
@@ -407,6 +420,8 @@ function handleAnswer(card, url) {
     if (lives <= 0) {
       revealCorrect();
       setTimeout(gameOver, 1200);
+	  } else {
+      answersLocked = false;
     }
   }
 }
@@ -429,7 +444,7 @@ function gameOver() {
   }
 
   document.getElementById("images-grid").innerHTML = "";
-  document.getElementById("article-title").textContent = "WikiPiki";
+  document.getElementById("article-title").textContent = "Merci d'avoir joué à WikiPiki 🙏";
   document.getElementById("hint-btn").style.display = "none";
   document.getElementById("intro-box").style.display = "none";
 
@@ -443,7 +458,18 @@ function gameOver() {
     updateHUD();
     loadRound();
   };
-}
+  
+  document.getElementById("share-btn").onclick = () => {
+  const text = `J'ai fait ${streak} bonne${streak > 1 ? "s" : ""} réponse${streak > 1 ? "s" : ""} d'affilée à WikiPiki!\nMon record : ${record}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`;
+  if (navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard.writeText(text);
+    alert("Texte copié dans le presse-papier !");
+  }
+};
+
+  }
 
 updateHUD();
 loadRound();
