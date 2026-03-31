@@ -251,7 +251,7 @@
 }
 
 #share-btn {
-    background: #4caf50; /* vert pour se distinguer */
+    background: #4caf50;
 }
 
 #share-btn:hover {
@@ -262,32 +262,69 @@
 <body>
 
 <h1>WikiPiki</h1>
-<div id="subtitle">Trouve l'image qui correspond à l'article !</div>
+<div id="subtitle"></div>
 
 <div id="hud">
   <div id="lives">🎓🎓🎓</div>
-  <div id="streak-display">Score : 0</div>
+  <div id="streak-display"></div>
 </div>
 
-<div id="article-title">Chargement...</div>
+<div id="article-title"></div>
 <div id="intro-box"></div>
-<button id="hint-btn">Afficher l'intro de l'article ? (-1🎓)</button>
+<button id="hint-btn"></button>
 <div id="images-grid"></div>
 <div id="loading"></div>
 
 <div id="gameover">
-  <h2>Partie terminée !</h2>
+  <h2 id="gameover-title"></h2>
   <div id="go-streak"></div>
   <div id="go-record"></div>
-  <button id="restart-btn">🔄 Rejouer</button>
-  <button id="share-btn">🔗 Partager</button>
-
+  <button id="restart-btn"></button>
+  <button id="share-btn"></button>
 </div>
 
 <script>
 const LANG = navigator.language.startsWith("fr") ? "fr" : "en";
 const API = `https://${LANG}.wikipedia.org/api/rest_v1`;
 const WIKI_API = `https://${LANG}.wikipedia.org/w/api.php`;
+
+const T = {
+  fr: {
+    subtitle: "Trouve l'image qui correspond à l'article !",
+    score: "Score",
+    record: "Record",
+    loading: "Chargement...",
+    retrying: "Erreur de chargement, on réessaie...",
+    hintBtn: "Afficher l'intro de l'article ? (-1🎓)",
+    noIntro: "Pas d'intro disponible.",
+    gameoverTitle: "Partie terminée !",
+    replay: "🔄 Rejouer",
+    share: "🔗 Partager",
+    copied: "Texte copié dans le presse-papier !",
+    shareText: (s, r) => `J'ai fait ${s} bonne${s > 1 ? "s" : ""} réponse${s > 1 ? "s" : ""} d'affilée à WikiPiki!\nMon record : ${r}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`,
+  },
+  en: {
+    subtitle: "Find the image that matches the article!",
+    score: "Score",
+    record: "Record",
+    loading: "Loading...",
+    retrying: "Loading error, retrying...",
+    hintBtn: "Show article intro? (-1🎓)",
+    noIntro: "No intro available.",
+    gameoverTitle: "Game Over!",
+    replay: "🔄 Play again",
+    share: "🔗 Share",
+    copied: "Text copied to clipboard!",
+    shareText: (s, r) => `I got ${s} correct answer${s > 1 ? "s" : ""} in a row on WikiPiki!\nMy record: ${r}\nCan you do better? 👉 https://axopatrick.github.io/wikipiki/`,
+  }
+}[LANG];
+
+// Initialisation des textes statiques
+document.getElementById("subtitle").textContent = T.subtitle;
+document.getElementById("hint-btn").textContent = T.hintBtn;
+document.getElementById("gameover-title").textContent = T.gameoverTitle;
+document.getElementById("restart-btn").textContent = T.replay;
+document.getElementById("share-btn").textContent = T.share;
 
 let lives = 3;
 let streak = 0;
@@ -298,7 +335,7 @@ let hintUsed = false;
 
 function updateHUD() {
   document.getElementById("lives").textContent = "🎓".repeat(lives) || "💀";
-  document.getElementById("streak-display").textContent = `Score : ${streak}`;
+  document.getElementById("streak-display").textContent = `${T.score} : ${streak}`;
 }
 
 function getImageCount() {
@@ -366,7 +403,6 @@ function playWrongSound() {
   osc.stop(ctx.currentTime + 0.4);
 }
 
-
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -382,9 +418,11 @@ async function loadRound() {
   document.getElementById("images-grid").innerHTML = "";
   document.getElementById("intro-box").style.display = "none";
   document.getElementById("gameover").style.display = "none";
+  document.getElementById("article-title").style.display = "block";
   document.getElementById("hint-btn").style.display = "inline-block";
   document.getElementById("hint-btn").disabled = false;
-  document.getElementById("loading").textContent = "Chargement...";
+  document.getElementById("hint-btn").textContent = T.hintBtn;
+  document.getElementById("loading").textContent = T.loading;
 
   try {
     const imageCount = getImageCount();
@@ -412,7 +450,7 @@ async function loadRound() {
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
   } catch (e) {
-    document.getElementById("loading").textContent = "Erreur de chargement, on réessaie...";
+    document.getElementById("loading").textContent = T.retrying;
     setTimeout(loadRound, 2000);
   }
 }
@@ -427,7 +465,7 @@ function showHint(intro) {
 
   const box = document.getElementById("intro-box");
   box.style.display = "block";
-  box.textContent = intro || "Pas d'intro disponible.";
+  box.textContent = intro || T.noIntro;
 
   if (lives <= 0) {
     setTimeout(gameOver, 600);
@@ -439,13 +477,13 @@ function handleAnswer(card, url) {
   answersLocked = true;
 
   if (url === correctImageUrl) {
-    playCorrectSound(); // ✅ ICI
+    playCorrectSound();
     card.classList.add("correct");
     streak++;
     updateHUD();
     setTimeout(loadRound, 1200);
   } else {
-    playWrongSound(); // ❌ ICI
+    playWrongSound();
     card.classList.add("wrong");
     lives--;
     updateHUD();
@@ -458,7 +496,6 @@ function handleAnswer(card, url) {
     }
   }
 }
-
 
 function revealCorrect() {
   document.querySelectorAll(".img-card").forEach(card => {
@@ -478,13 +515,12 @@ function gameOver() {
   }
 
   document.getElementById("images-grid").innerHTML = "";
-  document.getElementById("article-title").textContent = "Merci d'avoir joué à WikiPiki 🙏";
+  document.getElementById("article-title").style.display = "none";
   document.getElementById("hint-btn").style.display = "none";
-  document.getElementById("hint-btn").style.margin = "0";
-  document.getElementById("intro-box").style.display = "none";
+   document.getElementById("intro-box").style.display = "none";
 
-  document.getElementById("go-streak").textContent = `Score : ${streak}`;
-  document.getElementById("go-record").textContent = `Record : ${record}`;
+  document.getElementById("go-streak").textContent = `${T.score} : ${streak}`;
+  document.getElementById("go-record").textContent = `${T.record} : ${record}`;
   document.getElementById("gameover").style.display = "flex";
 
   document.getElementById("restart-btn").onclick = () => {
@@ -493,18 +529,17 @@ function gameOver() {
     updateHUD();
     loadRound();
   };
-  
-  document.getElementById("share-btn").onclick = () => {
-  const text = `J'ai fait ${streak} bonne${streak > 1 ? "s" : ""} réponse${streak > 1 ? "s" : ""} d'affilée à WikiPiki!\nMon record : ${record}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`;
-  if (navigator.share) {
-    navigator.share({ text });
-  } else {
-    navigator.clipboard.writeText(text);
-    alert("Texte copié dans le presse-papier !");
-  }
-};
 
-  }
+  document.getElementById("share-btn").onclick = () => {
+    const text = T.shareText(streak, record);
+    if (navigator.share) {
+      navigator.share({ text });
+    } else {
+      navigator.clipboard.writeText(text);
+      alert(T.copied);
+    }
+  };
+}
 
 updateHUD();
 loadRound();
