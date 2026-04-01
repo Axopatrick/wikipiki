@@ -40,6 +40,7 @@
     font-size: 0.85rem;
     color: #54595d;
     margin-top: auto;
+    border-radius: 8px;
   }
 
   footer a {
@@ -182,28 +183,28 @@
     75% { transform: translateX(8px); }
   }
 
-#hint-btn {
-  background: #3366cc;
-  color: white;
-  border: 1px solid #3366cc;
-  padding: 8px 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  margin-top: 15px;
-  margin-bottom: 25px;
-  font-family: arial;
-  transition: transform 0.2s;
-}
+  #hint-btn {
+    background: #3366cc;
+    color: white;
+    border: 1px solid #3366cc;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 15px;
+    margin-bottom: 25px;
+    font-family: arial;
+    transition: transform 0.2s;
+  }
 
-#hint-btn:hover:not(:disabled) {
-  transform: scale(1.05);
-}
+  #hint-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+  }
 
-#hint-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+  #hint-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   #loading {
     margin-top: 40px;
@@ -234,7 +235,7 @@
 
   #go-streak, #go-record { font-size: 1.1rem; color: #54595d; }
 
- #restart-btn, #share-btn {
+  #restart-btn, #share-btn {
     background: #3366cc;
     color: white;
     border: none;
@@ -244,19 +245,47 @@
     font-size: 1rem;
     font-family: inherit;
     transition: background 0.2s;
-}
+  }
 
-#restart-btn:hover, #share-btn:hover {
+  #restart-btn:hover, #share-btn:hover {
     background: #2a55aa;
-}
+  }
 
-#share-btn {
+  #share-btn {
     background: #4caf50;
-}
+  }
 
-#share-btn:hover {
+  #share-btn:hover {
     background: #388e3c;
-}
+  }
+
+  #levelup-panel {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 999;
+    border: 2px solid #3366cc;
+  }
+
+  #levelup-panel h2 {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    font-weight: normal;
+    color: #202122;
+  }
+
+  #levelup-panel p {
+    font-size: 1.2rem;
+    color: #54595d;
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -275,7 +304,14 @@
 <div id="images-grid"></div>
 <div id="loading"></div>
 
+<div id="levelup-panel">
+<div style="font-size: 3rem; margin-bottom: 8px;">🚀</div>
+  <h2 id="levelup-title"></h2>
+  <p id="levelup-msg"></p>
+</div>
+
 <div id="gameover">
+  <div id="go-medal" style="font-size: 4rem; margin-bottom: 8px;"></div>
   <h2 id="gameover-title"></h2>
   <div id="go-streak"></div>
   <div id="go-record"></div>
@@ -299,8 +335,10 @@ const T = {
     noIntro: "Pas d'intro disponible.",
     gameoverTitle: "Partie terminée !",
     replay: "🔄 Rejouer",
-    share: "🔗 Partager",
+    share: "📣 Partager",
     copied: "Texte copié dans le presse-papier !",
+    levelUp: "Niveau supérieur !",
+    levelUpMsg: "On ajoute une image...",
     shareText: (s, r) => `J'ai fait ${s} bonne${s > 1 ? "s" : ""} réponse${s > 1 ? "s" : ""} d'affilée à WikiPiki!\nMon record : ${r}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`,
   },
   en: {
@@ -313,8 +351,10 @@ const T = {
     noIntro: "No intro available.",
     gameoverTitle: "Game Over!",
     replay: "🔄 Play again",
-    share: "🔗 Share",
+    share: "📣 Share",
     copied: "Text copied to clipboard!",
+    levelUp: "🏛 Next level!",
+    levelUpMsg: "Adding a photo...",
     shareText: (s, r) => `I got ${s} correct answer${s > 1 ? "s" : ""} in a row on WikiPiki!\nMy record: ${r}\nCan you do better? 👉 https://axopatrick.github.io/wikipiki/`,
   }
 }[LANG];
@@ -325,6 +365,8 @@ document.getElementById("hint-btn").textContent = T.hintBtn;
 document.getElementById("gameover-title").textContent = T.gameoverTitle;
 document.getElementById("restart-btn").textContent = T.replay;
 document.getElementById("share-btn").textContent = T.share;
+document.getElementById("levelup-title").textContent = T.levelUp;
+document.getElementById("levelup-msg").textContent = T.levelUpMsg;
 
 let lives = 3;
 let streak = 0;
@@ -343,6 +385,11 @@ function getImageCount() {
   if (streak >= 10) return 5;
   if (streak >= 5)  return 4;
   return 3;
+}
+
+// Retourne true si on vient de passer un palier
+function isLevelUp(newStreak) {
+  return newStreak === 5 || newStreak === 10 || newStreak === 20;
 }
 
 async function fetchRandomArticle() {
@@ -411,6 +458,15 @@ function shuffle(arr) {
   return arr;
 }
 
+function showLevelUpThenLoad() {
+  const panel = document.getElementById("levelup-panel");
+  panel.style.display = "block";
+  setTimeout(() => {
+    panel.style.display = "none";
+    loadRound();
+  }, 2000);
+}
+
 async function loadRound() {
   answersLocked = false;
   hintUsed = false;
@@ -423,6 +479,7 @@ async function loadRound() {
   document.getElementById("hint-btn").disabled = false;
   document.getElementById("hint-btn").textContent = T.hintBtn;
   document.getElementById("loading").textContent = T.loading;
+  document.getElementById("loading").style.display = "block";
 
   try {
     const imageCount = getImageCount();
@@ -434,6 +491,7 @@ async function loadRound() {
 
     document.getElementById("article-title").textContent = article.title;
     document.getElementById("loading").textContent = "";
+    document.getElementById("loading").style.display = "none";
 
     const grid = document.getElementById("images-grid");
     allImages.forEach(url => {
@@ -481,7 +539,13 @@ function handleAnswer(card, url) {
     card.classList.add("correct");
     streak++;
     updateHUD();
-    setTimeout(loadRound, 1200);
+
+    if (isLevelUp(streak)) {
+      setTimeout(showLevelUpThenLoad, 1200);
+    } else {
+      setTimeout(loadRound, 1200);
+    }
+
   } else {
     playWrongSound();
     card.classList.add("wrong");
@@ -517,10 +581,15 @@ function gameOver() {
   document.getElementById("images-grid").innerHTML = "";
   document.getElementById("article-title").style.display = "none";
   document.getElementById("hint-btn").style.display = "none";
-   document.getElementById("intro-box").style.display = "none";
+  document.getElementById("intro-box").style.display = "none";
+  document.getElementById("loading").style.display = "none";
 
   document.getElementById("go-streak").textContent = `${T.score} : ${streak}`;
   document.getElementById("go-record").textContent = `${T.record} : ${record}`;
+
+  const medal = streak < 10 ? "🥉" : streak < 20 ? "🥈" : "🥇";
+  document.getElementById("go-medal").textContent = medal;
+
   document.getElementById("gameover").style.display = "flex";
 
   document.getElementById("restart-btn").onclick = () => {
