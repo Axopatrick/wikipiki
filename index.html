@@ -234,6 +234,17 @@
   }
 
   #go-streak, #go-record { font-size: 1.1rem; color: #54595d; }
+  
+  @keyframes bounce-in {
+  0%   { transform: scale(0);    opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.bounce-in {
+  animation: bounce-in 0.6s ease forwards;
+}
 
   #restart-btn, #share-btn {
     background: #3366cc;
@@ -450,6 +461,35 @@ function playWrongSound() {
   osc.stop(ctx.currentTime + 0.4);
 }
 
+function playGameOverSound() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Mi - Ré - Do - La (gamme mineure descendante)
+  const notes = [329.63, 293.66, 261.63, 220.00];
+  const duree = 0.35; // durée de chaque note en secondes
+
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = "sine"; // doux, façon RPG
+    osc.frequency.value = freq;
+
+    const debut = ctx.currentTime + i * duree;
+    const fin = debut + duree;
+
+    gain.gain.setValueAtTime(0, debut);
+    gain.gain.linearRampToValueAtTime(0.4, debut + 0.02); // attaque douce
+    gain.gain.linearRampToValueAtTime(0, fin);             // fondu sortant
+
+    osc.start(debut);
+    osc.stop(fin + 0.05);
+  });
+}
+
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -572,6 +612,7 @@ function revealCorrect() {
 
 function gameOver() {
   answersLocked = true;
+    playGameOverSound();
 
   if (streak > record) {
     record = streak;
@@ -590,7 +631,11 @@ function gameOver() {
   const medal = streak < 10 ? "🥉" : streak < 20 ? "🥈" : "🥇";
   document.getElementById("go-medal").textContent = medal;
 
-  document.getElementById("gameover").style.display = "flex";
+  const panel = document.getElementById("gameover");
+  panel.classList.remove("bounce-in");
+  void panel.offsetWidth; // 🪄 reset l'animation
+  panel.style.display = "flex";
+  panel.classList.add("bounce-in");
 
   document.getElementById("restart-btn").onclick = () => {
     lives = 3;
