@@ -316,7 +316,7 @@
 <div id="loading"></div>
 
 <div id="levelup-panel">
-<div style="font-size: 3rem; margin-bottom: 8px;">🚀</div>
+  <div style="font-size: 3rem; margin-bottom: 8px;">🚀</div>
   <h2 id="levelup-title"></h2>
   <p id="levelup-msg"></p>
 </div>
@@ -370,7 +370,6 @@ const T = {
   }
 }[LANG];
 
-// Initialisation des textes statiques
 document.getElementById("subtitle").textContent = T.subtitle;
 document.getElementById("hint-btn").textContent = T.hintBtn;
 document.getElementById("gameover-title").textContent = T.gameoverTitle;
@@ -398,7 +397,6 @@ function getImageCount() {
   return 3;
 }
 
-// Retourne true si on vient de passer un palier
 function isLevelUp(newStreak) {
   return newStreak === 5 || newStreak === 10 || newStreak === 20;
 }
@@ -419,7 +417,7 @@ async function fetchRandomImages(count) {
     action: "query",
     generator: "random",
     grnnamespace: 0,
-    grnlimit: 50,          // ← max autorisé par l'API
+    grnlimit: 50,
     prop: "pageimages",
     piprop: "thumbnail",
     pithumbsize: 400,
@@ -433,7 +431,6 @@ async function fetchRandomImages(count) {
     .map(p => p.thumbnail.source);
 
   if (urls.length < count) {
-    // Pas assez ? On rappelle récursivement et on fusionne
     const more = await fetchRandomImages(count);
     return [...new Set([...urls, ...more])].slice(0, count);
   }
@@ -441,6 +438,11 @@ async function fetchRandomImages(count) {
   return shuffle(urls).slice(0, count);
 }
 
+// Récupère une seule image leurre de remplacement
+async function fetchOneDecoy() {
+  const urls = await fetchRandomImages(1);
+  return urls[0];
+}
 
 function playCorrectSound() {
   const ctx = new AudioContext();
@@ -475,28 +477,20 @@ function playWrongSound() {
 
 function playGameOverSound() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
-  // Mi - Ré - Do - La (gamme mineure descendante)
   const notes = [329.63, 293.66, 261.63, 220.00];
-  const duree = 0.35; // durée de chaque note en secondes
-
+  const duree = 0.35;
   notes.forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.connect(gain);
     gain.connect(ctx.destination);
-
-    osc.type = "sine"; // doux, façon RPG
+    osc.type = "sine";
     osc.frequency.value = freq;
-
     const debut = ctx.currentTime + i * duree;
     const fin = debut + duree;
-
     gain.gain.setValueAtTime(0, debut);
-    gain.gain.linearRampToValueAtTime(0.4, debut + 0.02); // attaque douce
-    gain.gain.linearRampToValueAtTime(0, fin);             // fondu sortant
-
+    gain.gain.linearRampToValueAtTime(0.4, debut + 0.02);
+    gain.gain.linearRampToValueAtTime(0, fin);
     osc.start(debut);
     osc.stop(fin + 0.05);
   });
@@ -535,50 +529,58 @@ async function loadRound() {
 
   try {
     const imageCount = getImageCount();
-    console.log("imageCount:", imageCount);
-
     const article = await fetchRandomArticle();
     correctImageUrl = article.image;
-    console.log("correctImageUrl:", correctImageUrl);
 
     const decoys = await fetchRandomImages(imageCount - 1);
-    console.log("decoys récupérés:", decoys.length, decoys);
-
     const allImages = shuffle([correctImageUrl, ...decoys.slice(0, imageCount - 1)]);
-    console.log("allImages final:", allImages.length, allImages);
 
     document.getElementById("article-title").textContent = article.title;
     document.getElementById("loading").textContent = "";
     document.getElementById("loading").style.display = "none";
 
     const grid = document.getElementById("images-grid");
-allImages.forEach(url => {
-  const card = document.createElement("div");
-  card.className = "img-card";
-  const img = document.createElement("img");
-  img.src = url;
-  img.onerror = () => {
-    if (url === correctImageUrl) {
-      // On recharge SEULEMENT un nouvel article, sans toucher aux leurres
-      fetchRandomArticle().then(newArticle => {
-        correctImageUrl = newArticle.image;
-        document.getElementById("article-title").textContent = newArticle.title;
-        document.getElementById("hint-btn").onclick = () => showHint(newArticle.intro);
-        img.src = correctImageUrl;
-      }).catch(() => loadRound()); // si ça échoue vraiment, on recharge tout
-    } else {
-      card.style.display = "none";
-    }
-  };
-  card.appendChild(img);
-  card.onclick = () => handleAnswer(card, url);
-  grid.appendChild(card);
-});
+
+    allImages.forEach(url => {
+      const card = document.createElement("div");
+      card.className = "img-card";
+      const img = document.createElement("img");
+      img.src = url;
+
+      img.onerror = () => {
+        if (url === correctImageUrl) {
+          // Image correcte cassée → on change d'article discrètement
+          fetchRandomArticle()
+            .then(newArticle => {
+              correctImageUrl = newArticle.image;
+              document.getElementById("article-title").textContent = newArticle.title;
+              document.getElementById("hint-btn").onclick = () => showHint(newArticle.intro);
+              img.src = correctImageUrl;
+              // Mettre à jour le onclick de la carte aussi
+              card.onclick = () => handleAnswer(card, correctImageUrl);
+            })
+            .catch(() => loadRound());
+        } else {
+          // Leurre cassé → on le remplace par un nouveau
+          fetchOneDecoy()
+            .then(newUrl => {
+              img.src = newUrl;
+              card.onclick = () => handleAnswer(card, newUrl);
+            })
+            .catch(() => {
+              card.style.display = "none"; // dernier recours
+            });
+        }
+      };
+
+      card.appendChild(img);
+      card.onclick = () => handleAnswer(card, url);
+      grid.appendChild(card);
+    });
 
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
   } catch (e) {
-    console.error("Erreur loadRound:", e);
     document.getElementById("loading").textContent = T.retrying;
     setTimeout(loadRound, 2000);
   }
@@ -639,7 +641,7 @@ function revealCorrect() {
 
 function gameOver() {
   answersLocked = true;
-    playGameOverSound();
+  playGameOverSound();
 
   if (streak > record) {
     record = streak;
@@ -660,7 +662,7 @@ function gameOver() {
 
   const panel = document.getElementById("gameover");
   panel.classList.remove("bounce-in");
-  void panel.offsetWidth; // 🪄 reset l'animation
+  void panel.offsetWidth;
   panel.style.display = "flex";
   panel.classList.add("bounce-in");
 
