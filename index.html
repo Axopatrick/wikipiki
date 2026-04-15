@@ -234,7 +234,7 @@
   }
 
   #go-streak, #go-record { font-size: 1.1rem; color: #54595d; }
-  
+
   @keyframes bounce-in {
   0%   { transform: scale(0);    opacity: 0; }
   60%  { transform: scale(1.15); opacity: 1; }
@@ -438,10 +438,10 @@ async function fetchRandomImages(count) {
   return shuffle(urls).slice(0, count);
 }
 
-// Récupère une seule image leurre de remplacement
 async function fetchOneDecoy() {
-  const urls = await fetchRandomImages(1);
-  return urls[0];
+  const urls = await fetchRandomImages(5);
+  // On retourne la première URL qui ne soit pas l'image correcte
+  return urls.find(u => u !== correctImageUrl) || urls[0];
 }
 
 function playCorrectSound() {
@@ -532,8 +532,12 @@ async function loadRound() {
     const article = await fetchRandomArticle();
     correctImageUrl = article.image;
 
-    const decoys = await fetchRandomImages(imageCount - 1);
-    const allImages = shuffle([correctImageUrl, ...decoys.slice(0, imageCount - 1)]);
+    // ✅ On demande plus d'images que nécessaire et on filtre les doublons avec la bonne image
+    const decoys = (await fetchRandomImages(imageCount + 5))
+      .filter(url => url !== correctImageUrl)
+      .slice(0, imageCount - 1);
+
+    const allImages = shuffle([correctImageUrl, ...decoys]);
 
     document.getElementById("article-title").textContent = article.title;
     document.getElementById("loading").textContent = "";
@@ -548,27 +552,24 @@ async function loadRound() {
       img.src = url;
 
       img.onerror = () => {
-        if (url === correctImageUrl) {
-          // Image correcte cassée → on change d'article discrètement
+        if (img.src === correctImageUrl) {
           fetchRandomArticle()
             .then(newArticle => {
               correctImageUrl = newArticle.image;
               document.getElementById("article-title").textContent = newArticle.title;
               document.getElementById("hint-btn").onclick = () => showHint(newArticle.intro);
               img.src = correctImageUrl;
-              // Mettre à jour le onclick de la carte aussi
               card.onclick = () => handleAnswer(card, correctImageUrl);
             })
             .catch(() => loadRound());
         } else {
-          // Leurre cassé → on le remplace par un nouveau
           fetchOneDecoy()
             .then(newUrl => {
               img.src = newUrl;
               card.onclick = () => handleAnswer(card, newUrl);
             })
             .catch(() => {
-              card.style.display = "none"; // dernier recours
+              card.style.display = "none";
             });
         }
       };
