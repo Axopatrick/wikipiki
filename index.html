@@ -552,19 +552,21 @@ async function loadRound() {
     document.getElementById("loading").style.display = "none";
 
     const grid = document.getElementById("images-grid");
- allImages.forEach(url => {
+allImages.forEach(url => {
   const card = document.createElement("div");
   card.className = "img-card";
   const img = document.createElement("img");
   img.src = url;
-  img.onerror = () => { 
+  img.onerror = () => {
     if (url === correctImageUrl) {
-      // La bonne image est cassée → on recharge un nouvel article
-      console.log("Bonne image cassée, on recharge...");
-      grid.innerHTML = "";
-      loadRound();
+      // On recharge SEULEMENT un nouvel article, sans toucher aux leurres
+      fetchRandomArticle().then(newArticle => {
+        correctImageUrl = newArticle.image;
+        document.getElementById("article-title").textContent = newArticle.title;
+        document.getElementById("hint-btn").onclick = () => showHint(newArticle.intro);
+        img.src = correctImageUrl;
+      }).catch(() => loadRound()); // si ça échoue vraiment, on recharge tout
     } else {
-      // Un leurre est cassé → on cache juste la carte
       card.style.display = "none";
     }
   };
@@ -572,7 +574,6 @@ async function loadRound() {
   card.onclick = () => handleAnswer(card, url);
   grid.appendChild(card);
 });
-
 
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
