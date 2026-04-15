@@ -517,83 +517,78 @@ async function loadRound() {
   answersLocked = false;
   hintUsed = false;
 
+  // Reset visuel
   document.getElementById("images-grid").innerHTML = "";
   document.getElementById("intro-box").style.display = "none";
   document.getElementById("gameover").style.display = "none";
-  document.getElementById("article-title").style.display = "block";
-  document.getElementById("hint-btn").style.display = "inline-block";
-  document.getElementById("hint-btn").disabled = false;
-  document.getElementById("hint-btn").textContent = T.hintBtn;
+  document.getElementById("article-title").style.display = "none"; // caché jusqu'à la fin
+  document.getElementById("hint-btn").style.display = "none";      // caché jusqu'à la fin
   document.getElementById("loading").textContent = T.loading;
   document.getElementById("loading").style.display = "block";
 
   try {
     const imageCount = getImageCount();
-    const article = await fetchRandomArticle();
+
+    // 1. Trouver un article avec une image qui charge vraiment
+    let article = null;
+    while (!article) {
+      const candidate = await fetchRandomArticle();
+      const ok = await imageLoads(candidate.image);
+      if (ok) article = candidate;
+    }
     correctImageUrl = article.image;
 
-    const decoys = (await fetchRandomImages(imageCount + 5))
-      .filter(url => url !== correctImageUrl)
-      .slice(0, imageCount - 1);
+    // 2. Trouver assez de leurres qui chargent vraiment
+    let decoys = [];
+    while (decoys.length < imageCount - 1) {
+      const candidates = await fetchRandomImages(imageCount + 10);
+      for (const url of candidates) {
+        if (url === correctImageUrl) continue;
+        if (decoys.includes(url)) continue;
+        const ok = await imageLoads(url);
+        if (ok) decoys.push(url);
+        if (decoys.length >= imageCount - 1) break;
+      }
+    }
+
+    // 3. Tout est prêt → on affiche tout d'un coup
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("article-title").textContent = article.title;
+    document.getElementById("article-title").style.display = "block";
+    document.getElementById("hint-btn").textContent = T.hintBtn;
+    document.getElementById("hint-btn").disabled = false;
+    document.getElementById("hint-btn").style.display = "inline-block";
+    document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
     const allImages = shuffle([correctImageUrl, ...decoys]);
-
-    document.getElementById("article-title").textContent = article.title;
-
-    // ✅ On précharge toutes les images AVANT d'afficher la grille
-    await Promise.all(allImages.map(url => new Promise(resolve => {
-      const img = new Image();
-      img.onload = resolve;
-      img.onerror = resolve; // on résout même en cas d'erreur, on gérera après
-      img.src = url;
-    })));
-
-    document.getElementById("loading").textContent = "";
-    document.getElementById("loading").style.display = "none";
-
     const grid = document.getElementById("images-grid");
 
     allImages.forEach(url => {
       const card = document.createElement("div");
       card.className = "img-card";
       const img = document.createElement("img");
-      img.src = url; // déjà en cache, s'affiche instantanément
-
-      img.onerror = () => {
-        if (img.src === correctImageUrl) {
-          fetchRandomArticle()
-            .then(newArticle => {
-              correctImageUrl = newArticle.image;
-              document.getElementById("article-title").textContent = newArticle.title;
-              document.getElementById("hint-btn").onclick = () => showHint(newArticle.intro);
-              img.src = correctImageUrl;
-              card.onclick = () => handleAnswer(card, correctImageUrl);
-            })
-            .catch(() => loadRound());
-        } else {
-          fetchOneDecoy()
-            .then(newUrl => {
-              img.src = newUrl;
-              card.onclick = () => handleAnswer(card, newUrl);
-            })
-            .catch(() => {
-              card.style.display = "none";
-            });
-        }
-      };
-
+      img.src = url; // déjà en cache
       card.appendChild(img);
       card.onclick = () => handleAnswer(card, url);
       grid.appendChild(card);
     });
-
-    document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
   } catch (e) {
     document.getElementById("loading").textContent = T.retrying;
     setTimeout(loadRound, 2000);
   }
 }
+
+// Fonction utilitaire : est-ce que cette image charge vraiment ?
+function imageLoads(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
 function showHint(intro) {
   if (hintUsed) return;
   hintUsed = true;
