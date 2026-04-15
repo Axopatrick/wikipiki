@@ -552,19 +552,27 @@ async function loadRound() {
     document.getElementById("loading").style.display = "none";
 
     const grid = document.getElementById("images-grid");
-    allImages.forEach(url => {
-      const card = document.createElement("div");
-      card.className = "img-card";
-      const img = document.createElement("img");
-      img.src = url;
-      img.onerror = () => { 
-        console.log("Image en erreur (cachée):", url);
-        card.style.display = "none"; 
-      };
-      card.appendChild(img);
-      card.onclick = () => handleAnswer(card, url);
-      grid.appendChild(card);
-    });
+ allImages.forEach(url => {
+  const card = document.createElement("div");
+  card.className = "img-card";
+  const img = document.createElement("img");
+  img.src = url;
+  img.onerror = () => { 
+    if (url === correctImageUrl) {
+      // La bonne image est cassée → on recharge un nouvel article
+      console.log("Bonne image cassée, on recharge...");
+      grid.innerHTML = "";
+      loadRound();
+    } else {
+      // Un leurre est cassé → on cache juste la carte
+      card.style.display = "none";
+    }
+  };
+  card.appendChild(img);
+  card.onclick = () => handleAnswer(card, url);
+  grid.appendChild(card);
+});
+
 
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
