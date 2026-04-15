@@ -535,11 +535,17 @@ async function loadRound() {
 
   try {
     const imageCount = getImageCount();
+    console.log("imageCount:", imageCount);
+
     const article = await fetchRandomArticle();
     correctImageUrl = article.image;
+    console.log("correctImageUrl:", correctImageUrl);
 
     const decoys = await fetchRandomImages(imageCount - 1);
+    console.log("decoys récupérés:", decoys.length, decoys);
+
     const allImages = shuffle([correctImageUrl, ...decoys.slice(0, imageCount - 1)]);
+    console.log("allImages final:", allImages.length, allImages);
 
     document.getElementById("article-title").textContent = article.title;
     document.getElementById("loading").textContent = "";
@@ -551,7 +557,10 @@ async function loadRound() {
       card.className = "img-card";
       const img = document.createElement("img");
       img.src = url;
-      img.onerror = () => { card.style.display = "none"; };
+      img.onerror = () => { 
+        console.log("Image en erreur (cachée):", url);
+        card.style.display = "none"; 
+      };
       card.appendChild(img);
       card.onclick = () => handleAnswer(card, url);
       grid.appendChild(card);
@@ -560,6 +569,7 @@ async function loadRound() {
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
   } catch (e) {
+    console.error("Erreur loadRound:", e);
     document.getElementById("loading").textContent = T.retrying;
     setTimeout(loadRound, 2000);
   }
