@@ -57,7 +57,7 @@
     overflow: hidden;
   }
 
- .img-card.correct::after {
+  .img-card.correct::after {
     content: "✅";
     position: absolute;
     top: 0; left: 0;
@@ -168,19 +168,19 @@
   }
 
   .img-card.correct { border-color: #4caf50; animation: pulse-green 0.5s ease; }
-  .img-card.wrong { border-color: #f44336; animation: shake 0.4s ease; }
+  .img-card.wrong   { border-color: #f44336; animation: shake 0.4s ease; }
   .img-card.reveal-correct { border-color: #4caf50; }
 
   @keyframes pulse-green {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.04); }
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.04); }
     100% { transform: scale(1); }
   }
 
   @keyframes shake {
     0%,100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    75% { transform: translateX(8px); }
+    25%     { transform: translateX(-8px); }
+    75%     { transform: translateX(8px); }
   }
 
   #hint-btn {
@@ -197,9 +197,7 @@
     transition: transform 0.2s;
   }
 
-  #hint-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-  }
+  #hint-btn:hover:not(:disabled) { transform: scale(1.05); }
 
   #hint-btn:disabled {
     opacity: 0.4;
@@ -222,9 +220,9 @@
   }
 
   @keyframes globePulse {
-    0%   { transform: scale(1);    opacity: 1; }
-    50%  { transform: scale(1.2);  opacity: 0.8; }
-    100% { transform: scale(1);    opacity: 1; }
+    0%   { transform: scale(1);   opacity: 1; }
+    50%  { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(1);   opacity: 1; }
   }
 
   #gameover {
@@ -251,15 +249,13 @@
   #go-streak, #go-record { font-size: 1.1rem; color: #54595d; }
 
   @keyframes bounce-in {
-  0%   { transform: scale(0);    opacity: 0; }
-  60%  { transform: scale(1.15); opacity: 1; }
-  80%  { transform: scale(0.95); }
-  100% { transform: scale(1);    opacity: 1; }
-}
+    0%   { transform: scale(0);    opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    80%  { transform: scale(0.95); }
+    100% { transform: scale(1);    opacity: 1; }
+  }
 
-.bounce-in {
-  animation: bounce-in 0.6s ease forwards;
-}
+  .bounce-in { animation: bounce-in 0.6s ease forwards; }
 
   #restart-btn, #share-btn {
     background: #3366cc;
@@ -273,23 +269,15 @@
     transition: background 0.2s;
   }
 
-  #restart-btn:hover, #share-btn:hover {
-    background: #2a55aa;
-  }
+  #restart-btn:hover, #share-btn:hover { background: #2a55aa; }
 
-  #share-btn {
-    background: #4caf50;
-  }
-
-  #share-btn:hover {
-    background: #388e3c;
-  }
+  #share-btn           { background: #4caf50; }
+  #share-btn:hover     { background: #388e3c; }
 
   #levelup-panel {
     display: none;
     position: fixed;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     background: white;
     border-radius: 16px;
@@ -351,86 +339,104 @@
 
 <script>
 const LANG = navigator.language.startsWith("fr") ? "fr" : "en";
-const API = `https://${LANG}.wikipedia.org/api/rest_v1`;
+const API      = `https://${LANG}.wikipedia.org/api/rest_v1`;
 const WIKI_API = `https://${LANG}.wikipedia.org/w/api.php`;
 
 const T = {
   fr: {
-    subtitle: "Trouve l'image qui correspond à l'article !",
-    score: "Score",
-    record: "Record",
-    loading: "En train de fouiller Wikipedia...",
-    retrying: "Erreur de chargement, on réessaie...",
-    hintBtn: "Afficher l'intro de l'article ? (-1 point)",
-    noIntro: "Pas d'intro disponible.",
-    gameoverTitle: "Partie terminée !",
-    replay: "🔄 Rejouer",
-    share: "📣 Partager",
-    copied: "Texte copié dans le presse-papier !",
-    levelUp: "Niveau supérieur!",
-    levelUpMsg: "On ajoute une image...",
-    shareText: (s, r) => `J'ai fait ${s} bonne${s > 1 ? "s" : ""} réponse${s > 1 ? "s" : ""} d'affilée à WikiPiki!\nMon record : ${r}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`,
+    subtitle:     "Trouve l'image qui correspond à l'article !",
+    score:        "Score",
+    record:       "Record",
+    loading:      "En train de fouiller Wikipedia...",
+    retrying:     "Erreur de chargement, on réessaie...",
+    hintBtn:      "Afficher l'intro de l'article ? (-1 point)",
+    noIntro:      "Pas d'intro disponible.",
+    gameoverTitle:"Partie terminée !",
+    replay:       "🔄 Rejouer",
+    share:        "📣 Partager",
+    copied:       "Texte copié dans le presse-papier !",
+    levelUp:      "Niveau supérieur!",
+    levelUpMsg:   "On ajoute une image...",
+    shareText: (s, r) =>
+      `J'ai fait ${s} bonne${s>1?"s":""} réponse${s>1?"s":""} d'affilée à WikiPiki!\nMon record : ${r}\nEssaie de faire mieux 👉 https://axopatrick.github.io/wikipiki/`,
   },
   en: {
-    subtitle: "Find the image that matches the article!",
-    score: "Score",
-    record: "Record",
-    loading: "Browsing Wikipedia...",
-    retrying: "Loading error, retrying...",
-    hintBtn: "Show article intro? (-1 point)",
-    noIntro: "No intro available.",
-    gameoverTitle: "Game Over!",
-    replay: "🔄 Play again",
-    share: "📣 Share",
-    copied: "Text copied to clipboard!",
-    levelUp: "Level up!",
-    levelUpMsg: "Adding a photo...",
-    shareText: (s, r) => `I got ${s} correct answer${s > 1 ? "s" : ""} in a row on WikiPiki!\nMy record: ${r}\nCan you do better? 👉 https://axopatrick.github.io/wikipiki/`,
+    subtitle:     "Find the image that matches the article!",
+    score:        "Score",
+    record:       "Record",
+    loading:      "Browsing Wikipedia...",
+    retrying:     "Loading error, retrying...",
+    hintBtn:      "Show article intro? (-1 point)",
+    noIntro:      "No intro available.",
+    gameoverTitle:"Game Over!",
+    replay:       "🔄 Play again",
+    share:        "📣 Share",
+    copied:       "Text copied to clipboard!",
+    levelUp:      "Level up!",
+    levelUpMsg:   "Adding a photo...",
+    shareText: (s, r) =>
+      `I got ${s} correct answer${s>1?"s":""} in a row on WikiPiki!\nMy record: ${r}\nCan you do better? 👉 https://axopatrick.github.io/wikipiki/`,
   }
 }[LANG];
 
-document.getElementById("subtitle").textContent = T.subtitle;
-document.getElementById("hint-btn").textContent = T.hintBtn;
+document.getElementById("subtitle").textContent       = T.subtitle;
+document.getElementById("hint-btn").textContent       = T.hintBtn;
 document.getElementById("gameover-title").textContent = T.gameoverTitle;
-document.getElementById("restart-btn").textContent = T.replay;
-document.getElementById("share-btn").textContent = T.share;
-document.getElementById("levelup-title").textContent = T.levelUp;
-document.getElementById("levelup-msg").textContent = T.levelUpMsg;
+document.getElementById("restart-btn").textContent    = T.replay;
+document.getElementById("share-btn").textContent      = T.share;
+document.getElementById("levelup-title").textContent  = T.levelUp;
+document.getElementById("levelup-msg").textContent    = T.levelUpMsg;
 
-let lives = 3;
-let streak = 0;
-let record = parseInt(localStorage.getItem("wikiphoto_record") || "0");
+let lives    = 3;
+let streak   = 0;
+let record   = parseInt(localStorage.getItem("wikiphoto_record") || "0");
 let correctImageUrl = "";
-let answersLocked = false;
-let hintUsed = false;
+let answersLocked   = false;
+let hintUsed        = false;
 
+/* ── utilitaires UI ── */
 function showLoading(msg) {
   document.getElementById("loading-text").textContent = msg;
   document.getElementById("loading").style.display = "flex";
 }
-
 function hideLoading() {
   document.getElementById("loading").style.display = "none";
 }
-
 function updateHUD() {
-  document.getElementById("lives").textContent = "🎓".repeat(lives) || "💀";
+  document.getElementById("lives").textContent        = "🎓".repeat(lives) || "💀";
   document.getElementById("streak-display").textContent = `${T.score} : ${streak}`;
 }
-
 function getImageCount() {
   if (streak >= 20) return 6;
   if (streak >= 10) return 5;
   if (streak >= 5)  return 4;
   return 3;
 }
-
-function isLevelUp(newStreak) {
-  return newStreak === 5 || newStreak === 10 || newStreak === 20;
+function isLevelUp(s) { return s === 5 || s === 10 || s === 20; }
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
+/* ── vérifie qu'une image se charge, avec timeout ── */
+// 🔑 FIX MOBILE : on abandonne après 5 s au lieu d'attendre indéfiniment
+function imageLoads(url, timeout = 5000) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const timer = setTimeout(() => resolve(false), timeout);
+    img.onload  = () => { clearTimeout(timer); resolve(true);  };
+    img.onerror = () => { clearTimeout(timer); resolve(false); };
+    img.src = url;
+  });
+}
+
+/* ── fetch article aléatoire ── */
 async function fetchRandomArticle() {
-  const res = await fetch(`${API}/page/random/summary`);
+  const res  = await fetch(`${API}/page/random/summary`,
+                           { signal: AbortSignal.timeout(8000) }); // 🔑 FIX MOBILE
   const data = await res.json();
   if (!data.thumbnail?.source) throw new Error("no image");
   return {
@@ -440,147 +446,135 @@ async function fetchRandomArticle() {
   };
 }
 
+/* ── fetch images leurres ── */
 async function fetchRandomImages(count) {
-  const res = await fetch(WIKI_API + "?" + new URLSearchParams({
-    action: "query",
-    generator: "random",
-    grnnamespace: 0,
-    grnlimit: 50,
-    prop: "pageimages",
-    piprop: "thumbnail",
-    pithumbsize: 400,
-    format: "json",
-    origin: "*"
-  }));
-  const data = await res.json();
+  const res = await fetch(
+    WIKI_API + "?" + new URLSearchParams({
+      action: "query", generator: "random",
+      grnnamespace: 0, grnlimit: 50,
+      prop: "pageimages", piprop: "thumbnail", pithumbsize: 400,
+      format: "json", origin: "*"
+    }),
+    { signal: AbortSignal.timeout(8000) }  // 🔑 FIX MOBILE
+  );
+  const data  = await res.json();
   const pages = Object.values(data?.query?.pages || {});
-  const urls = pages
-    .filter(p => p.thumbnail?.source)
-    .map(p => p.thumbnail.source);
-
-  if (urls.length < count) {
-    const more = await fetchRandomImages(count);
-    return [...new Set([...urls, ...more])].slice(0, count);
-  }
-
-  return shuffle(urls).slice(0, count);
+  const urls  = pages.filter(p => p.thumbnail?.source).map(p => p.thumbnail.source);
+  return shuffle(urls);
 }
 
+/* ── sons ── */
 function playCorrectSound() {
-  const ctx = new AudioContext();
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
+  osc.connect(gain); gain.connect(ctx.destination);
   osc.type = "sine";
   osc.frequency.setValueAtTime(523, ctx.currentTime);
   osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
   osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
   gain.gain.setValueAtTime(0.3, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.5);
+  osc.start(); osc.stop(ctx.currentTime + 0.5);
 }
-
 function playWrongSound() {
-  const ctx = new AudioContext();
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
+  osc.connect(gain); gain.connect(ctx.destination);
   osc.type = "sawtooth";
   osc.frequency.setValueAtTime(300, ctx.currentTime);
   osc.frequency.setValueAtTime(150, ctx.currentTime + 0.15);
   gain.gain.setValueAtTime(0.3, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.4);
+  osc.start(); osc.stop(ctx.currentTime + 0.4);
 }
-
 function playGameOverSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx   = new (window.AudioContext || window.webkitAudioContext)();
   const notes = [329.63, 293.66, 261.63, 220.00];
   const duree = 0.35;
   notes.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
+    const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = freq;
     const debut = ctx.currentTime + i * duree;
-    const fin = debut + duree;
+    const fin   = debut + duree;
     gain.gain.setValueAtTime(0, debut);
     gain.gain.linearRampToValueAtTime(0.4, debut + 0.02);
     gain.gain.linearRampToValueAtTime(0, fin);
-    osc.start(debut);
-    osc.stop(fin + 0.05);
+    osc.start(debut); osc.stop(fin + 0.05);
   });
 }
 
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
+/* ── level-up ── */
 function showLevelUpThenLoad() {
   const panel = document.getElementById("levelup-panel");
   panel.style.display = "block";
-  setTimeout(() => {
-    panel.style.display = "none";
-    loadRound();
-  }, 2000);
+  setTimeout(() => { panel.style.display = "none"; loadRound(); }, 2000);
 }
 
-async function loadRound() {
-  answersLocked = false;
-  hintUsed = false;
+/* ══════════════════════════════════════════
+   CHARGEMENT D'UN ROUND
+   Changements clés :
+   • imageLoads() a un timeout de 5 s
+   • vérification article + leurres en parallèle
+   • max 5 tentatives avant message d'erreur propre
+   ══════════════════════════════════════════ */
+async function loadRound(attempt = 1) {
+  const MAX_ATTEMPTS = 5;
 
-  document.getElementById("images-grid").innerHTML = "";
-  document.getElementById("intro-box").style.display = "none";
-  document.getElementById("gameover").style.display = "none";
+  answersLocked = false;
+  hintUsed      = false;
+
+  document.getElementById("images-grid").innerHTML    = "";
+  document.getElementById("intro-box").style.display  = "none";
+  document.getElementById("gameover").style.display   = "none";
   document.getElementById("article-title").style.display = "none";
-  document.getElementById("hint-btn").style.display = "none";
-  showLoading(T.loading);
+  document.getElementById("hint-btn").style.display   = "none";
+  showLoading(attempt === 1 ? T.loading : T.retrying);
 
   try {
     const imageCount = getImageCount();
 
+    /* -- 1. article avec image valide -- */
     let article = null;
-    while (!article) {
-      const candidate = await fetchRandomArticle();
-      const ok = await imageLoads(candidate.image);
-      if (ok) article = candidate;
-    }
-    correctImageUrl = article.image;
-
-    let decoys = [];
-    while (decoys.length < imageCount - 1) {
-      const candidates = await fetchRandomImages(imageCount + 10);
-      for (const url of candidates) {
-        if (url === correctImageUrl) continue;
-        if (decoys.includes(url)) continue;
-        const ok = await imageLoads(url);
-        if (ok) decoys.push(url);
-        if (decoys.length >= imageCount - 1) break;
+    // 🔑 FIX MOBILE : on tente plusieurs articles d'un coup (Promise.any)
+    for (let tries = 0; tries < 5 && !article; tries++) {
+      const candidates = await Promise.all(
+        Array.from({ length: 3 }, fetchRandomArticle)
+      );
+      for (const c of candidates) {
+        if (await imageLoads(c.image)) { article = c; break; }
       }
     }
+    if (!article) throw new Error("no valid article");
 
+    correctImageUrl = article.image;
+
+    /* -- 2. images leurres valides -- */
+    let decoys = [];
+    // 🔑 FIX MOBILE : on vérifie toutes les URLs en parallèle
+    for (let tries = 0; tries < 5 && decoys.length < imageCount - 1; tries++) {
+      const urls     = await fetchRandomImages(imageCount + 20);
+      const filtered = urls.filter(u => u !== correctImageUrl && !decoys.includes(u));
+      const checks   = await Promise.all(filtered.map(u => imageLoads(u)));
+      const valid    = filtered.filter((_, i) => checks[i]);
+      decoys = [...decoys, ...valid].slice(0, imageCount - 1);
+    }
+    if (decoys.length < imageCount - 1) throw new Error("not enough decoys");
+
+    /* -- 3. affichage -- */
     hideLoading();
-    document.getElementById("article-title").textContent = article.title;
-    document.getElementById("article-title").style.display = "block";
-    document.getElementById("hint-btn").textContent = T.hintBtn;
-    document.getElementById("hint-btn").disabled = false;
-    document.getElementById("hint-btn").style.display = "inline-block";
+    document.getElementById("article-title").textContent    = article.title;
+    document.getElementById("article-title").style.display  = "block";
+    document.getElementById("hint-btn").textContent         = T.hintBtn;
+    document.getElementById("hint-btn").disabled            = false;
+    document.getElementById("hint-btn").style.display       = "inline-block";
     document.getElementById("hint-btn").onclick = () => showHint(article.intro);
 
-    const allImages = shuffle([correctImageUrl, ...decoys]);
     const grid = document.getElementById("images-grid");
-
-    allImages.forEach(url => {
+    shuffle([correctImageUrl, ...decoys]).forEach(url => {
       const card = document.createElement("div");
       card.className = "img-card";
       const img = document.createElement("img");
@@ -591,33 +585,28 @@ async function loadRound() {
     });
 
   } catch (e) {
-    showLoading(T.retrying);
-    setTimeout(loadRound, 2000);
+    if (attempt < MAX_ATTEMPTS) {
+      // 🔑 FIX MOBILE : délai croissant entre tentatives
+      setTimeout(() => loadRound(attempt + 1), attempt * 1500);
+    } else {
+      showLoading("⚠️ Impossible de charger. Vérifie ta connexion et rafraîchis la page.");
+    }
   }
 }
 
-function imageLoads(url) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
-}
-
+/* ── hint ── */
 function showHint(intro) {
   if (hintUsed) return;
   hintUsed = true;
   document.getElementById("hint-btn").disabled = true;
-
   if (streak > 0) streak--;
   updateHUD();
-
   const box = document.getElementById("intro-box");
   box.style.display = "block";
-  box.textContent = intro || T.noIntro;
+  box.textContent   = intro || T.noIntro;
 }
 
+/* ── réponse ── */
 function handleAnswer(card, url) {
   if (answersLocked) return;
   answersLocked = true;
@@ -627,37 +616,26 @@ function handleAnswer(card, url) {
     card.classList.add("correct");
     streak++;
     updateHUD();
-
-    if (isLevelUp(streak)) {
-      setTimeout(showLevelUpThenLoad, 1200);
-    } else {
-      setTimeout(loadRound, 1200);
-    }
-
+    if (isLevelUp(streak)) setTimeout(showLevelUpThenLoad, 1200);
+    else                    setTimeout(loadRound, 1200);
   } else {
     playWrongSound();
     card.classList.add("wrong");
     lives--;
     updateHUD();
-
-    if (lives <= 0) {
-      revealCorrect();
-      setTimeout(gameOver, 1200);
-    } else {
-      answersLocked = false;
-    }
+    if (lives <= 0) { revealCorrect(); setTimeout(gameOver, 1200); }
+    else            { answersLocked = false; }
   }
 }
 
 function revealCorrect() {
   document.querySelectorAll(".img-card").forEach(card => {
-    const img = card.querySelector("img");
-    if (img.src === correctImageUrl) {
+    if (card.querySelector("img").src === correctImageUrl)
       card.classList.add("reveal-correct");
-    }
   });
 }
 
+/* ── game over ── */
 function gameOver() {
   answersLocked = true;
   playGameOverSound();
@@ -667,17 +645,15 @@ function gameOver() {
     localStorage.setItem("wikiphoto_record", record);
   }
 
-  document.getElementById("images-grid").innerHTML = "";
+  document.getElementById("images-grid").innerHTML    = "";
   document.getElementById("article-title").style.display = "none";
-  document.getElementById("hint-btn").style.display = "none";
-  document.getElementById("intro-box").style.display = "none";
+  document.getElementById("hint-btn").style.display   = "none";
+  document.getElementById("intro-box").style.display  = "none";
   hideLoading();
 
   document.getElementById("go-streak").textContent = `${T.score} : ${streak}`;
   document.getElementById("go-record").textContent = `${T.record} : ${record}`;
-
-  const medal = streak < 10 ? "🥉" : streak < 20 ? "🥈" : "🥇";
-  document.getElementById("go-medal").textContent = medal;
+  document.getElementById("go-medal").textContent  = streak < 10 ? "🥉" : streak < 20 ? "🥈" : "🥇";
 
   const panel = document.getElementById("gameover");
   panel.classList.remove("bounce-in");
@@ -686,20 +662,13 @@ function gameOver() {
   panel.classList.add("bounce-in");
 
   document.getElementById("restart-btn").onclick = () => {
-    lives = 3;
-    streak = 0;
-    updateHUD();
-    loadRound();
+    lives = 3; streak = 0;
+    updateHUD(); loadRound();
   };
-
   document.getElementById("share-btn").onclick = () => {
     const text = T.shareText(streak, record);
-    if (navigator.share) {
-      navigator.share({ text });
-    } else {
-      navigator.clipboard.writeText(text);
-      alert(T.copied);
-    }
+    if (navigator.share) navigator.share({ text });
+    else { navigator.clipboard.writeText(text); alert(T.copied); }
   };
 }
 
