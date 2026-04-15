@@ -419,7 +419,7 @@ async function fetchRandomImages(count) {
     action: "query",
     generator: "random",
     grnnamespace: 0,
-    grnlimit: count * 4,
+    grnlimit: 50,          // ← max autorisé par l'API
     prop: "pageimages",
     piprop: "thumbnail",
     pithumbsize: 400,
@@ -428,10 +428,17 @@ async function fetchRandomImages(count) {
   }));
   const data = await res.json();
   const pages = Object.values(data?.query?.pages || {});
-  return pages
+  const urls = pages
     .filter(p => p.thumbnail?.source)
-    .map(p => p.thumbnail.source)
-    .slice(0, count);
+    .map(p => p.thumbnail.source);
+
+  if (urls.length < count) {
+    // Pas assez ? On rappelle récursivement et on fusionne
+    const more = await fetchRandomImages(count);
+    return [...new Set([...urls, ...more])].slice(0, count);
+  }
+
+  return shuffle(urls).slice(0, count);
 }
 
 
