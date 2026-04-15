@@ -415,20 +415,25 @@ async function fetchRandomArticle() {
 }
 
 async function fetchRandomImages(count) {
-  const images = [];
-  const attempts = count * 4;
-  for (let i = 0; i < attempts && images.length < count; i++) {
-    try {
-      const res = await fetch(`${API}/page/random/summary`);
-      const data = await res.json();
-      if (data.thumbnail?.source) {
-        const url = data.thumbnail.source.replace(/\/\d+px-/, "/400px-");
-        if (!images.includes(url)) images.push(url);
-      }
-    } catch {}
-  }
-  return images;
+  const res = await fetch(WIKI_API + "?" + new URLSearchParams({
+    action: "query",
+    generator: "random",
+    grnnamespace: 0,
+    grnlimit: count * 4,
+    prop: "pageimages",
+    piprop: "thumbnail",
+    pithumbsize: 400,
+    format: "json",
+    origin: "*"
+  }));
+  const data = await res.json();
+  const pages = Object.values(data?.query?.pages || {});
+  return pages
+    .filter(p => p.thumbnail?.source)
+    .map(p => p.thumbnail.source)
+    .slice(0, count);
 }
+
 
 function playCorrectSound() {
   const ctx = new AudioContext();
