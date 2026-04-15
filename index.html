@@ -532,7 +532,6 @@ async function loadRound() {
     const article = await fetchRandomArticle();
     correctImageUrl = article.image;
 
-    // ✅ On demande plus d'images que nécessaire et on filtre les doublons avec la bonne image
     const decoys = (await fetchRandomImages(imageCount + 5))
       .filter(url => url !== correctImageUrl)
       .slice(0, imageCount - 1);
@@ -540,6 +539,15 @@ async function loadRound() {
     const allImages = shuffle([correctImageUrl, ...decoys]);
 
     document.getElementById("article-title").textContent = article.title;
+
+    // ✅ On précharge toutes les images AVANT d'afficher la grille
+    await Promise.all(allImages.map(url => new Promise(resolve => {
+      const img = new Image();
+      img.onload = resolve;
+      img.onerror = resolve; // on résout même en cas d'erreur, on gérera après
+      img.src = url;
+    })));
+
     document.getElementById("loading").textContent = "";
     document.getElementById("loading").style.display = "none";
 
@@ -549,7 +557,7 @@ async function loadRound() {
       const card = document.createElement("div");
       card.className = "img-card";
       const img = document.createElement("img");
-      img.src = url;
+      img.src = url; // déjà en cache, s'affiche instantanément
 
       img.onerror = () => {
         if (img.src === correctImageUrl) {
@@ -586,7 +594,6 @@ async function loadRound() {
     setTimeout(loadRound, 2000);
   }
 }
-
 function showHint(intro) {
   if (hintUsed) return;
   hintUsed = true;
