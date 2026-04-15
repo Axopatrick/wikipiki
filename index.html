@@ -2,13 +2,6 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-   <script async src="https://www.googletagmanager.com/gtag/js?id=G-98NY7XKGWM"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-98NY7XKGWM');
-  </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WikiPiki</title>
 <style>
@@ -293,7 +286,7 @@
   }
 
   #levelup-panel h2 {
-    font-size: 2rem;
+    font-size: 1.7rem;
     margin-bottom: 12px;
     font-weight: normal;
     color: #202122;
@@ -349,7 +342,7 @@ const T = {
     record: "Record",
     loading: "Chargement...",
     retrying: "Erreur de chargement, on réessaie...",
-    hintBtn: "Afficher l'intro de l'article ? (-1🎓)",
+    hintBtn: "Afficher l'intro de l'article ? (-1 point)",
     noIntro: "Pas d'intro disponible.",
     gameoverTitle: "Partie terminée !",
     replay: "🔄 Rejouer",
@@ -365,7 +358,7 @@ const T = {
     record: "Record",
     loading: "Loading...",
     retrying: "Loading error, retrying...",
-    hintBtn: "Show article intro? (-1🎓)",
+    hintBtn: "Show article intro? (-1 point)",
     noIntro: "No intro available.",
     gameoverTitle: "Game Over!",
     replay: "🔄 Play again",
@@ -565,16 +558,12 @@ function showHint(intro) {
   hintUsed = true;
   document.getElementById("hint-btn").disabled = true;
 
-  lives--;
+  if (streak > 0) streak--;
   updateHUD();
 
   const box = document.getElementById("intro-box");
   box.style.display = "block";
   box.textContent = intro || T.noIntro;
-
-  if (lives <= 0) {
-    setTimeout(gameOver, 600);
-  }
 }
 
 function handleAnswer(card, url) {
