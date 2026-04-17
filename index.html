@@ -435,9 +435,21 @@ function imageLoads(url, timeout = 5000) {
   });
 }
 
+async function fetchWithTimeout(url, ms = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
 async function fetchRandomArticle() {
-  const res  = await fetch(`${API}/page/random/summary`,
-                           { signal: AbortSignal.timeout(8000) });
+  const res  = await fetchWithTimeout(`${API}/page/random/summary`);
   const data = await res.json();
   if (!data.thumbnail?.source) throw new Error("no image");
   return {
@@ -448,14 +460,13 @@ async function fetchRandomArticle() {
 }
 
 async function fetchRandomImages(count) {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     WIKI_API + "?" + new URLSearchParams({
       action: "query", generator: "random",
       grnnamespace: 0, grnlimit: 50,
       prop: "pageimages", piprop: "thumbnail", pithumbsize: 400,
       format: "json", origin: "*"
-    }),
-    { signal: AbortSignal.timeout(8000) }
+    })
   );
   const data  = await res.json();
   const pages = Object.values(data?.query?.pages || {});
