@@ -394,6 +394,10 @@ let correctImageUrl = "";
 let answersLocked   = false;
 let hintUsed        = false;
 
+/* ── prefetch ── */
+let prefetchedRound = null;
+let isPrefetching   = false;
+
 /* ── utilitaires UI ── */
 function showLoading(msg) {
   document.getElementById("loading-text").textContent = msg;
@@ -403,7 +407,7 @@ function hideLoading() {
   document.getElementById("loading").style.display = "none";
 }
 function updateHUD() {
-  document.getElementById("lives").textContent        = "🎓".repeat(lives) || "💀";
+  document.getElementById("lives").textContent          = "🎓".repeat(lives) || "💀";
   document.getElementById("streak-display").textContent = `${T.score} : ${streak}`;
 }
 function getImageCount() {
@@ -421,11 +425,9 @@ function shuffle(arr) {
   return arr;
 }
 
-/* ── vérifie qu'une image se charge, avec timeout ── */
-// 🔑 FIX MOBILE : on abandonne après 5 s au lieu d'attendre indéfiniment
 function imageLoads(url, timeout = 5000) {
   return new Promise(resolve => {
-    const img = new Image();
+    const img   = new Image();
     const timer = setTimeout(() => resolve(false), timeout);
     img.onload  = () => { clearTimeout(timer); resolve(true);  };
     img.onerror = () => { clearTimeout(timer); resolve(false); };
@@ -433,10 +435,9 @@ function imageLoads(url, timeout = 5000) {
   });
 }
 
-/* ── fetch article aléatoire ── */
 async function fetchRandomArticle() {
   const res  = await fetch(`${API}/page/random/summary`,
-                           { signal: AbortSignal.timeout(8000) }); // 🔑 FIX MOBILE
+                           { signal: AbortSignal.timeout(8000) });
   const data = await res.json();
   if (!data.thumbnail?.source) throw new Error("no image");
   return {
@@ -446,7 +447,6 @@ async function fetchRandomArticle() {
   };
 }
 
-/* ── fetch images leurres ── */
 async function fetchRandomImages(count) {
   const res = await fetch(
     WIKI_API + "?" + new URLSearchParams({
@@ -455,7 +455,7 @@ async function fetchRandomImages(count) {
       prop: "pageimages", piprop: "thumbnail", pithumbsize: 400,
       format: "json", origin: "*"
     }),
-    { signal: AbortSignal.timeout(8000) }  // 🔑 FIX MOBILE
+    { signal: AbortSignal.timeout(8000) }
   );
   const data  = await res.json();
   const pages = Object.values(data?.query?.pages || {});
@@ -465,8 +465,8 @@ async function fetchRandomImages(count) {
 
 /* ── sons ── */
 function playCorrectSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
+  const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+  const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = "sine";
@@ -478,8 +478,8 @@ function playCorrectSound() {
   osc.start(); osc.stop(ctx.currentTime + 0.5);
 }
 function playWrongSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
+  const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+  const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = "sawtooth";
@@ -515,11 +515,54 @@ function showLevelUpThenLoad() {
 }
 
 /* ══════════════════════════════════════════
-   CHARGEMENT D'UN ROUND
-   Changements clés :
-   • imageLoads() a un timeout de 5 s
-   • vérification article + leurres en parallèle
-   • max 5 tentatives avant message d'erreur propre
+   buildRound : construit les données d'un round
+   sans toucher au DOM — utilisé pour le prefetch
+   ══════════════════════════════════════════ */
+async function buildRound() {
+  const imageCount = getImageCount();
+
+  /* -- article avec image valide -- */
+  let article = null;
+  for (let tries = 0; tries < 5 && !article; tries++) {
+    const candidates = await Promise.all(
+      Array.from({ length: 3 }, fetchRandomArticle)
+    );
+    for (const c of candidates) {
+      if (await imageLoads(c.image)) { article = c; break; }
+    }
+  }
+  if (!article) throw new Error("no valid article");
+
+  /* -- images leurres valides -- */
+  let decoys = [];
+  for (let tries = 0; tries < 5 && decoys.length < imageCount - 1; tries++) {
+    const urls     = await fetchRandomImages(imageCount + 20);
+    const filtered = urls.filter(u => u !== article.image && !decoys.includes(u));
+    const checks   = await Promise.all(filtered.map(u => imageLoads(u)));
+    const valid    = filtered.filter((_, i) => checks[i]);
+    decoys = [...decoys, ...valid].slice(0, imageCount - 1);
+  }
+  if (decoys.length < imageCount - 1) throw new Error("not enough decoys");
+
+  return { article, images: shuffle([article.image, ...decoys]) };
+}
+
+/* ── prefetch silencieux du round suivant ── */
+async function prefetchNextRound() {
+  if (isPrefetching) return;
+  isPrefetching = true;
+  try {
+    prefetchedRound = await buildRound();
+  } catch(e) {
+    prefetchedRound = null; // pas grave, loadRound() se débrouillera
+  } finally {
+    isPrefetching = false;
+  }
+}
+
+/* ══════════════════════════════════════════
+   loadRound : affiche le round
+   Utilise le prefetch si dispo, sinon charge
    ══════════════════════════════════════════ */
 async function loadRound(attempt = 1) {
   const MAX_ATTEMPTS = 5;
@@ -527,71 +570,58 @@ async function loadRound(attempt = 1) {
   answersLocked = false;
   hintUsed      = false;
 
-  document.getElementById("images-grid").innerHTML    = "";
-  document.getElementById("intro-box").style.display  = "none";
-  document.getElementById("gameover").style.display   = "none";
+  document.getElementById("images-grid").innerHTML       = "";
+  document.getElementById("intro-box").style.display     = "none";
+  document.getElementById("gameover").style.display      = "none";
   document.getElementById("article-title").style.display = "none";
-  document.getElementById("hint-btn").style.display   = "none";
-  showLoading(attempt === 1 ? T.loading : T.retrying);
+  document.getElementById("hint-btn").style.display      = "none";
 
-  try {
-    const imageCount = getImageCount();
+  let roundData = null;
 
-    /* -- 1. article avec image valide -- */
-    let article = null;
-    // 🔑 FIX MOBILE : on tente plusieurs articles d'un coup (Promise.any)
-    for (let tries = 0; tries < 5 && !article; tries++) {
-      const candidates = await Promise.all(
-        Array.from({ length: 3 }, fetchRandomArticle)
-      );
-      for (const c of candidates) {
-        if (await imageLoads(c.image)) { article = c; break; }
-      }
-    }
-    if (!article) throw new Error("no valid article");
-
-    correctImageUrl = article.image;
-
-    /* -- 2. images leurres valides -- */
-    let decoys = [];
-    // 🔑 FIX MOBILE : on vérifie toutes les URLs en parallèle
-    for (let tries = 0; tries < 5 && decoys.length < imageCount - 1; tries++) {
-      const urls     = await fetchRandomImages(imageCount + 20);
-      const filtered = urls.filter(u => u !== correctImageUrl && !decoys.includes(u));
-      const checks   = await Promise.all(filtered.map(u => imageLoads(u)));
-      const valid    = filtered.filter((_, i) => checks[i]);
-      decoys = [...decoys, ...valid].slice(0, imageCount - 1);
-    }
-    if (decoys.length < imageCount - 1) throw new Error("not enough decoys");
-
-    /* -- 3. affichage -- */
+  /* ── on utilise le round préchargé s'il est prêt ── */
+  if (prefetchedRound) {
+    roundData       = prefetchedRound;
+    prefetchedRound = null;
     hideLoading();
-    document.getElementById("article-title").textContent    = article.title;
-    document.getElementById("article-title").style.display  = "block";
-    document.getElementById("hint-btn").textContent         = T.hintBtn;
-    document.getElementById("hint-btn").disabled            = false;
-    document.getElementById("hint-btn").style.display       = "inline-block";
-    document.getElementById("hint-btn").onclick = () => showHint(article.intro);
-
-    const grid = document.getElementById("images-grid");
-    shuffle([correctImageUrl, ...decoys]).forEach(url => {
-      const card = document.createElement("div");
-      card.className = "img-card";
-      const img = document.createElement("img");
-      img.src = url;
-      card.appendChild(img);
-      card.onclick = () => handleAnswer(card, url);
-      grid.appendChild(card);
-    });
-
-  } catch (e) {
-    if (attempt < MAX_ATTEMPTS) {
-      // 🔑 FIX MOBILE : délai croissant entre tentatives
-      setTimeout(() => loadRound(attempt + 1), attempt * 1500);
-    } else {
-      showLoading("⚠️ Impossible de charger. Vérifie ta connexion et rafraîchis la page.");
+  } else {
+    showLoading(attempt === 1 ? T.loading : T.retrying);
+    try {
+      roundData = await buildRound();
+      hideLoading();
+    } catch(e) {
+      if (attempt < MAX_ATTEMPTS) {
+        setTimeout(() => loadRound(attempt + 1), attempt * 1500);
+      } else {
+        showLoading("⚠️ Impossible de charger. Vérifie ta connexion et rafraîchis la page.");
+      }
+      return;
     }
   }
+
+  /* ── affichage ── */
+  const { article, images } = roundData;
+  correctImageUrl = article.image;
+
+  document.getElementById("article-title").textContent    = article.title;
+  document.getElementById("article-title").style.display  = "block";
+  document.getElementById("hint-btn").textContent         = T.hintBtn;
+  document.getElementById("hint-btn").disabled            = false;
+  document.getElementById("hint-btn").style.display       = "inline-block";
+  document.getElementById("hint-btn").onclick = () => showHint(article.intro);
+
+  const grid = document.getElementById("images-grid");
+  images.forEach(url => {
+    const card = document.createElement("div");
+    card.className = "img-card";
+    const img = document.createElement("img");
+    img.src = url;
+    card.appendChild(img);
+    card.onclick = () => handleAnswer(card, url);
+    grid.appendChild(card);
+  });
+
+  /* ── on prépare le round suivant en coulisses ── */
+  prefetchNextRound();
 }
 
 /* ── hint ── */
@@ -645,10 +675,10 @@ function gameOver() {
     localStorage.setItem("wikiphoto_record", record);
   }
 
-  document.getElementById("images-grid").innerHTML    = "";
+  document.getElementById("images-grid").innerHTML       = "";
   document.getElementById("article-title").style.display = "none";
-  document.getElementById("hint-btn").style.display   = "none";
-  document.getElementById("intro-box").style.display  = "none";
+  document.getElementById("hint-btn").style.display      = "none";
+  document.getElementById("intro-box").style.display     = "none";
   hideLoading();
 
   document.getElementById("go-streak").textContent = `${T.score} : ${streak}`;
@@ -663,6 +693,7 @@ function gameOver() {
 
   document.getElementById("restart-btn").onclick = () => {
     lives = 3; streak = 0;
+    prefetchedRound = null;
     updateHUD(); loadRound();
   };
   document.getElementById("share-btn").onclick = () => {
